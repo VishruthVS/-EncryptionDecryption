@@ -36,7 +36,7 @@ fn split_iv_data_mac(orig: &str) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>), Box<dyn 
 }
 
 fn get_valid_key(key: &str) -> Vec<u8> {
-    let mut bytes = key.as_bytes().to_vec();
+    let mut bytes: Vec<u8> = key.as_bytes().to_vec();
     if bytes.len() < 16 {
         for _j in 0..(16 - bytes.len()) {
             bytes.push(0x00);
