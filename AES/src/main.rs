@@ -4,7 +4,7 @@ use std::error::Error;
 use std::io::ErrorKind;
 use std::iter::repeat;
 use std::str::from_utf8;
-use std::{env, io, str};
+use std::{io, str};
 
 //This function splits the data, removes the hex encoding, and returns each as a list of bytes.
 fn split_iv_data_mac(orig: &str) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>), Box<dyn Error>> {
@@ -13,6 +13,7 @@ fn split_iv_data_mac(orig: &str) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>), Box<dyn 
     if split.len() != 3 {
         return Err(Box::new(io::Error::from(ErrorKind::Other)));
     }
+
     let iv_res: Result<Vec<u8>, hex::FromHexError> = hex::decode(split[0]);
     if iv_res.is_err() {
         return Err(Box::new(io::Error::from(ErrorKind::Other)));
@@ -58,16 +59,16 @@ pub fn decrypt(iv_data_mac: &str, key: &str) -> Result<Vec<u8>, Box<dyn Error>> 
     let mut dst: Vec<u8> = repeat(0).take(data.len()).collect();
     let result = decipher.decrypt(&data, &mut dst, &mac);
 
-    if result {
-        println!("Successful decryption");
-    }
+    println!();
 
-    println!("\nDecrypted {}", str::from_utf8(&dst).unwrap());
+    if result {
+        println!("Decryption Successful");
+    }
 
     Ok(dst)
 }
 
-/// Output is [hexNonce]/[hexCipher]/[hexMac]
+/// Output is [hexIV]/[hexCipher]/[hexMac]
 pub fn encrypt(data: &[u8], key: &str) -> String {
     let key_size: crypto::aes::KeySize = crypto::aes::KeySize::KeySize128;
 
@@ -91,27 +92,83 @@ pub fn encrypt(data: &[u8], key: &str) -> String {
     let hex_mac: String = hex::encode(mac);
     let output: String = format!("{}/{}/{}", hex_iv, hex_cipher, hex_mac);
 
+    println!("Cipher Text : {}", hex_cipher);
+
     output
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    println!("Encryption and Decryption using Advanced Encryption Standard");
+    println!();
 
-    let data: &str = args[1].as_str();
-    let key: &str = args[2].as_str();
+    println!("List of Available Functions: ");
+    println!("1. Encrypt");
+    println!("2. Decrypt");
+    println!("3. Exit");
 
-    println!(
-        "Data to be encrypted: \"{}\" and password: \"{}\"",
-        data, key
-    );
+    println!();
 
-    println!("Encrypting The Data");
+    println!("Enter your choice: ");
 
-    let res: String = encrypt(data.as_bytes(), key);
-    println!("Encrypted response: {}", res);
+    let mut choice: String = String::new();
 
-    println!("Decrypting the response");
-    let decrypted_bytes: Vec<u8> = decrypt(res.as_str(), key).unwrap();
-    let decrypted_string: &str = from_utf8(&decrypted_bytes).unwrap();
-    println!("Decrypted response: {}", decrypted_string);
+    let _nb: usize = io::stdin().read_line(&mut choice).unwrap();
+
+    let mut plain_text: String = String::new();
+    let mut key: String = String::new();
+    let mut _cipher_text: String = String::new();
+
+    println!();
+
+    match choice.as_str().trim() {
+        "1" => {
+            println!("You have Selected to Encrypt Data");
+            println!();
+
+            println!("Enter the Plain Text: ");
+            io::stdin().read_line(&mut plain_text).unwrap();
+            println!();
+
+            println!("Enter the Key: ");
+            io::stdin().read_line(&mut key).unwrap();
+            println!();
+
+            println!("Data to be encrypted: {} and Key: {}", plain_text, key);
+
+            println!("Encrypting The Data");
+
+            let res: String = encrypt(plain_text.as_bytes(), key.as_str());
+            println!();
+
+            println!("Output: {}", res);
+        }
+        "2" => {
+            println!("You have selected to Decrypt Data");
+            println!();
+
+            println!(
+                "Enter the Initalization Vector, Cipher Text and Message Authentication Code in Hex: "
+            );
+
+            let mut input: String = String::new();
+            io::stdin().read_line(&mut input).unwrap();
+
+            println!();
+            println!("Enter the Key: ");
+
+            io::stdin().read_line(&mut key).unwrap();
+
+            let decrypted_bytes: Vec<u8> = decrypt(input.as_str().trim(), key.as_str()).unwrap();
+            let decrypted_string: &str = from_utf8(&decrypted_bytes).unwrap();
+
+            println!("Plain Text: {}", decrypted_string);
+        }
+        "3" => {
+            println!("Thank You");
+            std::process::exit(0);
+        }
+        _ => {
+            println!("Invalid Choice");
+        }
+    }
 }
